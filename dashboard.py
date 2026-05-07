@@ -59,30 +59,27 @@ def generate_trade_data():
         month_name = date.strftime("%b")
         
         # Seasonal factors
-        if month == 12:  # December peak
+        if month == 12:
             season_export = 1.3
             season_import = 1.2
-        elif month in [6, 7, 8]:  # Mid-year moderate
+        elif month in [6, 7, 8]:
             season_export = 0.9
             season_import = 1.0
-        elif month in [1, 2]:  # January low
+        elif month in [1, 2]:
             season_export = 0.7
             season_import = 0.8
         else:
             season_export = 1.0
             season_import = 1.0
         
-        # Yearly growth (exports and imports grow over years)
-        growth_export = 1 + (year - 2023) * 0.08  # 8% annual growth
-        growth_import = 1 + (year - 2023) * 0.05  # 5% annual growth
+        # Yearly growth
+        growth_export = 1 + (year - 2023) * 0.08
+        growth_import = 1 + (year - 2023) * 0.05
         
         # EXPORT DATA
         for product, base_value in export_products.items():
-            # Add some randomness
             value = base_value * season_export * growth_export * np.random.uniform(0.85, 1.15)
-            value = round(value * 1000, 2)  # Convert to thousands USD
-            
-            # Random trading partner distribution
+            value = round(value * 1000, 2)
             partner = np.random.choice(trading_partners, p=[0.25, 0.15, 0.12, 0.10, 0.08, 0.08, 0.07, 0.06, 0.05, 0.04])
             
             data.append({
@@ -94,14 +91,13 @@ def generate_trade_data():
                 "Category": "Export",
                 "Trade_Value": value,
                 "Trading_Partner": partner,
-                "Volume": round(value / np.random.uniform(50, 500), 0)  # Approximate volume
+                "Volume": round(value / np.random.uniform(50, 500), 0)
             })
         
         # IMPORT DATA
         for product, base_value in import_products.items():
             value = base_value * season_import * growth_import * np.random.uniform(0.85, 1.15)
             value = round(value * 1000, 2)
-            
             partner = np.random.choice(trading_partners, p=[0.30, 0.18, 0.12, 0.08, 0.07, 0.07, 0.06, 0.05, 0.04, 0.03])
             
             data.append({
@@ -149,19 +145,18 @@ categories = st.sidebar.multiselect("Select Trade Type", ["Export", "Import"], d
 df = df[df["Category"].isin(categories)]
 
 partners = st.sidebar.multiselect("Select Trading Partner", df["Trading_Partner"].unique(), default=df["Trading_Partner"].unique())
-df = df[df["Trading_Partner"].isin(partners)
+df = df[df["Trading_Partner"].isin(partners)]
 
 # Key Metrics Row
 st.header("📊 Trade Overview")
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    st.metric("💰 Total Exports", f"USD {total_exports/1e6:.1f}M", delta=f"{(total_exports/1e6):.1f}M")
+    st.metric("💰 Total Exports", f"USD {total_exports/1e6:.1f}M")
 with col2:
     st.metric("📦 Total Imports", f"USD {total_imports/1e6:.1f}M")
 with col3:
-    balance_color = "normal" if trade_balance > 0 else "inverse"
-    st.metric("⚖️ Trade Balance", f"USD {trade_balance/1e6:.1f}M", delta_color=balance_color)
+    st.metric("⚖️ Trade Balance", f"USD {trade_balance/1e6:.1f}M")
 with col4:
     st.metric("🌍 Total Trade Volume", f"USD {total_trade/1e6:.1f}M")
 with col5:
@@ -178,13 +173,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📋 Data & Insights"
 ])
 
-# ==============================
 # TAB 1: Trade Trends
-# ==============================
 with tab1:
     st.subheader("Monthly Trade Trends (2023-2025)")
     
-    # Monthly trade value over time
     monthly_trade = df.groupby(["Date", "Category"])["Trade_Value"].sum().reset_index()
     monthly_trade = monthly_trade.sort_values("Date")
     
@@ -200,7 +192,6 @@ with tab1:
     fig1.update_layout(xaxis_title="Date", yaxis_title="Trade Value (USD)")
     st.plotly_chart(fig1, use_container_width=True)
     
-    # Yearly comparison bar chart
     col1, col2 = st.columns(2)
     
     with col1:
@@ -218,7 +209,6 @@ with tab1:
         st.plotly_chart(fig2, use_container_width=True)
     
     with col2:
-        # Trade balance by year
         yearly_balance = df.pivot_table(values="Trade_Value", index="Year", columns="Category", aggfunc="sum").reset_index()
         yearly_balance["Balance"] = yearly_balance["Export"] - yearly_balance["Import"]
         
@@ -234,7 +224,6 @@ with tab1:
         fig3.add_hline(y=0, line_dash="dash", line_color="black")
         st.plotly_chart(fig3, use_container_width=True)
     
-    # Seasonal heatmap
     st.subheader("Seasonal Trade Patterns")
     
     pivot_exports = df[df["Category"] == "Export"].pivot_table(
@@ -253,13 +242,10 @@ with tab1:
     )
     st.plotly_chart(fig4, use_container_width=True)
 
-# ==============================
 # TAB 2: Exports vs Imports Analysis
-# ==============================
 with tab2:
     st.subheader("Exports vs Imports Deep Dive")
     
-    # Stacked area chart
     monthly_stack = df.groupby(["Date", "Category"])["Trade_Value"].sum().reset_index()
     monthly_stack = monthly_stack.sort_values("Date")
     
@@ -274,11 +260,9 @@ with tab2:
     )
     st.plotly_chart(fig5, use_container_width=True)
     
-    # Export to Import Ratio
     col1, col2 = st.columns(2)
     
     with col1:
-        # Pie chart - Total Export vs Import
         total_by_category = df.groupby("Category")["Trade_Value"].sum().reset_index()
         fig6 = px.pie(
             total_by_category,
@@ -292,7 +276,6 @@ with tab2:
         st.plotly_chart(fig6, use_container_width=True)
     
     with col2:
-        # Export to Import Ratio by Year
         ratio_data = df.pivot_table(values="Trade_Value", index="Year", columns="Category", aggfunc="sum").reset_index()
         ratio_data["Exp/Imp_Ratio"] = ratio_data["Export"] / ratio_data["Import"]
         
@@ -304,10 +287,9 @@ with tab2:
             markers=True,
             range_y=[0, ratio_data["Exp/Imp_Ratio"].max() + 0.2]
         )
-        fig7.add_hline(y=1, line_dash="dash", line_color="red", annotation_text="Break-even Point")
+        fig7.add_hline(y=1, line_dash="dash", line_color="red")
         st.plotly_chart(fig7, use_container_width=True)
     
-    # Quarterly comparison
     st.subheader("Quarterly Trade Performance")
     quarterly = df.groupby(["Year", "Quarter", "Category"])["Trade_Value"].sum().reset_index()
     
@@ -323,16 +305,13 @@ with tab2:
     )
     st.plotly_chart(fig8, use_container_width=True)
 
-# ==============================
 # TAB 3: Trading Partners
-# ==============================
 with tab3:
     st.subheader("Top Trading Partners")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        # Top export partners
         top_export_partners = df[df["Category"] == "Export"].groupby("Trading_Partner")["Trade_Value"].sum().sort_values(ascending=False).head(10)
         fig9 = px.bar(
             x=top_export_partners.values / 1e6,
@@ -346,7 +325,6 @@ with tab3:
         st.plotly_chart(fig9, use_container_width=True)
     
     with col2:
-        # Top import partners
         top_import_partners = df[df["Category"] == "Import"].groupby("Trading_Partner")["Trade_Value"].sum().sort_values(ascending=False).head(10)
         fig10 = px.bar(
             x=top_import_partners.values / 1e6,
@@ -359,7 +337,6 @@ with tab3:
         )
         st.plotly_chart(fig10, use_container_width=True)
     
-    # Partner trade balance
     st.subheader("Trade Balance by Partner")
     partner_balance = df.pivot_table(values="Trade_Value", index="Trading_Partner", columns="Category", aggfunc="sum").fillna(0)
     partner_balance["Balance"] = partner_balance["Export"] - partner_balance["Import"]
@@ -376,7 +353,6 @@ with tab3:
     fig11.add_hline(y=0, line_dash="dash", line_color="black")
     st.plotly_chart(fig11, use_container_width=True)
     
-    # Treemap of partner trade
     st.subheader("Trade Distribution Treemap")
     partner_treemap = df.groupby(["Category", "Trading_Partner"])["Trade_Value"].sum().reset_index()
     
@@ -390,13 +366,10 @@ with tab3:
     )
     st.plotly_chart(fig12, use_container_width=True)
 
-# ==============================
 # TAB 4: Product Analysis
-# ==============================
 with tab4:
     st.subheader("Product Performance")
     
-    # Top export products
     col1, col2 = st.columns(2)
     
     with col1:
@@ -425,10 +398,8 @@ with tab4:
         )
         st.plotly_chart(fig14, use_container_width=True)
     
-    # Product growth over years
     st.subheader("Key Product Growth Trends (2023-2025)")
     
-    # Select top 5 exports and imports for trend lines
     top_5_exports = df[df["Category"] == "Export"].groupby("Product")["Trade_Value"].sum().nlargest(5).index
     top_5_imports = df[df["Category"] == "Import"].groupby("Product")["Trade_Value"].sum().nlargest(5).index
     
@@ -455,7 +426,6 @@ with tab4:
     )
     st.plotly_chart(fig16, use_container_width=True)
     
-    # Sunburst chart
     st.subheader("Product Category Distribution")
     product_sunburst = df.groupby(["Category", "Product"])["Trade_Value"].sum().reset_index()
     
@@ -469,21 +439,19 @@ with tab4:
     )
     st.plotly_chart(fig17, use_container_width=True)
 
-# ==============================
 # TAB 5: Data & Insights
-# ==============================
 with tab5:
     st.subheader("Key Trade Insights")
     
-    # Insight cards
     col1, col2 = st.columns(2)
     
     with col1:
         st.info("📈 **Export Growth**")
-        export_2023 = exports_df[exports_df["Year"] == 2023]["Trade_Value"].sum()
-        export_2025 = exports_df[exports_df["Year"] == 2025]["Trade_Value"].sum()
-        export_growth = ((export_2025 - export_2023) / export_2023) * 100
-        st.metric("Export Growth (2023-2025)", f"{export_growth:.1f}%", delta=f"{export_growth:.1f}%")
+        export_2023 = exports_df[exports_df["Year"] == 2023]["Trade_Value"].sum() if 2023 in exports_df["Year"].values else 0
+        export_2025 = exports_df[exports_df["Year"] == 2025]["Trade_Value"].sum() if 2025 in exports_df["Year"].values else 0
+        if export_2023 > 0:
+            export_growth = ((export_2025 - export_2023) / export_2023) * 100
+            st.metric("Export Growth (2023-2025)", f"{export_growth:.1f}%")
         
         st.info("🌍 **Top Export Destination**")
         st.metric("Leading Export Partner", top_export_partner)
@@ -492,10 +460,10 @@ with tab5:
         st.metric("Leading Import Partner", top_import_partner)
     
     with col2:
-        st.warning("⚠️ **Trade Deficit Alert**")
+        st.warning("⚠️ **Trade Balance Alert**")
         if trade_balance < 0:
-            deficit_pct = (abs(trade_balance) / total_imports) * 100
-            st.metric("Current Trade Deficit", f"USD {abs(trade_balance)/1e6:.1f}M", delta=f"{deficit_pct:.1f}% of imports")
+            deficit_pct = (abs(trade_balance) / total_imports) * 100 if total_imports > 0 else 0
+            st.metric("Current Trade Balance", f"USD {trade_balance/1e6:.1f}M")
         else:
             st.success("Trade Surplus Achieved!")
         
@@ -530,9 +498,8 @@ with tab5:
     summary_stats = df.groupby(["Year", "Category"]).agg({
         "Trade_Value": ["sum", "mean", "count"]
     }).round(2)
-    summary_stats.columns = ["Total_USD", "Average_USD", "Number_of_Transactions"]
-    summary_stats["Total_USD_Millions"] = summary_stats["Total_USD"] / 1e6
-    st.dataframe(summary_stats[["Total_USD_Millions", "Average_USD", "Number_of_Transactions"]], use_container_width=True)
+    summary_stats["Total_USD_Millions"] = summary_stats["Trade_Value"]["sum"] / 1e6 if "sum" in summary_stats["Trade_Value"] else 0
+    st.dataframe(summary_stats, use_container_width=True)
 
 # Footer
 st.markdown("---")
